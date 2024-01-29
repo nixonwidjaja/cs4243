@@ -23,10 +23,42 @@ def rgb2gray(img):
         return
     
     """ Your code starts here """
-    
+    R = 0.299
+    G = 0.587
+    B = 0.114
+    h, w = img.shape[:2]
+    img_gray = np.zeros((h, w))
+    for i in range(h):
+        for j in range(w):
+            img_gray[i, j] = R * img[i, j, 0] + G * img[i, j, 1] + B * img[i, j, 2]
     """ Your code ends here """
     return img_gray
 
+def flip(arr):
+    h, w = arr.shape[:2]
+    flipped = np.zeros((h, w))
+    for i in range(h):
+        for j in range(w):
+            flipped[h - i - 1, w - j - 1] = arr[i, j]
+    return flipped
+
+def cross(img, filter):
+    h, w = img.shape[:2]
+    hf, wf = filter.shape[:2]
+    x = h - hf + 1
+    y = w - wf + 1
+    ans = np.zeros((x, y))
+    for i in range(x):
+        for j in range(y):
+            sum = 0
+            for k in range(hf):
+                for l in range(wf):
+                    sum += img[i + k, j + l] * filter[k, l]
+            ans[i, j] = sum
+    return ans
+
+def conv(img, filter):
+    return cross(img, flip(filter))
 
 def gray2grad(img):
     """
@@ -54,7 +86,11 @@ def gray2grad(img):
     
 
     """ Your code starts here """
-
+    padded_img = pad_zeros(img, 1, 1, 1, 1)
+    img_grad_h = conv(padded_img, sobelh)
+    img_grad_v = conv(padded_img, sobelv)
+    img_grad_d1 = conv(padded_img, sobeld1)
+    img_grad_d2 = conv(padded_img, sobeld2)
     """ Your code ends here """
     return img_grad_h, img_grad_v, img_grad_d1, img_grad_d2
 
@@ -79,7 +115,15 @@ def pad_zeros(img, pad_height_bef, pad_height_aft, pad_width_bef, pad_width_aft)
     img_pad = np.zeros((new_height, new_width)) if len(img.shape) == 2 else np.zeros((new_height, new_width, img.shape[2]))
 
     """ Your code starts here """
-
+    if len(img.shape) == 2:
+        for i in range(height):
+            for j in range(width):
+                img_pad[i + pad_height_bef, j + pad_width_bef] = img[i, j]
+    else:
+        for i in range(height):
+            for j in range(width):
+                for k in range(img.shape[2]):
+                    img_pad[i + pad_height_bef, j + pad_width_bef, k] = img[i, j, k]
     """ Your code ends here """
     return img_pad
 
@@ -103,7 +147,20 @@ def normalized_cross_correlation(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
-
+    print(img.shape, template.shape)
+    F = np.sqrt(np.sum(template ** 2))
+    response = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            sum = 0
+            wij = 0
+            for k in range(Hk):
+                for l in range(Wk):
+                    sum += img[i + k, j + l] * template[k, l]
+                    wij += img[i + k, j + l] ** 2
+            print(type(F), type(wij), F, wij)
+            wij = np.sqrt(wij)
+            response[i, j] = sum / (F * wij)
     """ Your code ends here """
     return response
 
@@ -123,7 +180,13 @@ def normalized_cross_correlation_fast(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
-
+    F = math.sqrt(np.sum(template ** 2))
+    response = np.zeros((Ho, Wo))
+    for i in range(Ho):
+        for j in range(Wo):
+            submat = img[i:(i+Hk), j:(j+Wk)]
+            wij = np.sqrt(np.sum(submat ** 2))
+            response[i, j] = np.multiply(submat, template) / (F * wij)
     """ Your code ends here """
     return response
 
