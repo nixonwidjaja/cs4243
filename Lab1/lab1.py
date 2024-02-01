@@ -137,6 +137,7 @@ def normalized_cross_correlation(img, template):
     Implement the cross-correlation operation in a naive 4, 5 or 6 nested for-loops. 
     The loops should at least include the height and width of the output and height and width of the template.
     When it is 5 or 6 loops, the channel of the output and template may be included.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray.
     :param template: numpy.ndarray.
     :return response: numpy.ndarray. dtype: float
@@ -170,6 +171,7 @@ def normalized_cross_correlation_fast(img, template):
     10 points.
     Implement the cross correlation with 3 nested for-loops. 
     The for-loop over the template is replaced with the element-wise multiplication between the kernel and the image regions.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray
     :param template: numpy.ndarray
     :return response: numpy.ndarray. dtype: float
@@ -180,13 +182,7 @@ def normalized_cross_correlation_fast(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
-    F = math.sqrt(np.sum(template ** 2))
-    response = np.zeros((Ho, Wo))
-    for i in range(Ho):
-        for j in range(Wo):
-            submat = img[i:(i+Hk), j:(j+Wk)]
-            wij = np.sqrt(np.sum(submat ** 2))
-            response[i, j] = np.multiply(submat, template) / (F * wij)
+
     """ Your code ends here """
     return response
 
@@ -198,6 +194,7 @@ def normalized_cross_correlation_matrix(img, template):
     10 points.
     Converts cross-correlation into a matrix multiplication operation to leverage optimized matrix operations.
     Please check the detailed instructions in the pdf file.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray
     :param template: numpy.ndarray
     :return response: numpy.ndarray. dtype: float
@@ -223,7 +220,7 @@ def non_max_suppression(response, suppress_range, threshold=None):
 	1. Set a threshold τ; values in X<τ will not be considered.  Set X<τ to 0.  
     2. While there are non-zero values in X
         a. Find the global maximum in X and record the coordinates as a local maximum.
-        b. Set a small window of size w×w points centered on the found maximum to 0.
+        b. Set a small window of size h×w points centered on the found maximum to 0.
 	3. Return all recorded coordinates as the local maximum.
     :param response: numpy.ndarray, output from the normalized cross correlation
     :param suppress_range: a tuple of two ints (H_range, W_range). 
@@ -244,6 +241,7 @@ def normalized_cross_correlation_ms(img, template):
     10 points
     Please implement mean-subtracted cross correlation which corresponds to OpenCV TM_CCOEFF_NORMED.
     For simplicty, use the "fast" version.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray
     :param template: numpy.ndarray
     :return response: numpy.ndarray. dtype: float
