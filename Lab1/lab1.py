@@ -231,9 +231,36 @@ def non_max_suppression(response, suppress_range, threshold=None):
     :param threshold: int, points with value less than the threshold are set to 0
     :return res: a sparse response map which has the same shape as response
     """
+    def list_adjacent_tuplets(item, h, w):
+        out = []
+        for i in range (-h, h + 1):
+            for j in range(-w, w + 1):
+                out.append((item[0] + i, item[1] + j))
+        return out
     
+    res = response.copy()
+    
+    h, w = res.shape[:2]
+    all_points_map = {}
+    all_points_arr = []
+    curr = 0
     """ Your code starts here """
+    for i in range(h):
+        for j in range(w):
+            if res[i, j] > threshold:
+                all_points_map[(i, j)] = res[i, j]
+                all_points_arr.append((res[i, j], (i, j)))
+            res[i,j] = 0
 
+    sorted(all_points_arr, key=lambda item: -item[0])
+
+    while (all_points_map):
+        curr_point = all_points_arr[curr]
+        if curr_point[1] in all_points_map:
+            res[curr_point[1][0], curr_point[1][1]] = curr_point[0]
+            for adjacent_point in list_adjacent_tuplets(curr_point[1], suppress_range[0], suppress_range[1]):
+                all_points_arr.pop(adjacent_point)
+        curr += 1
     """ Your code ends here """
     return res
 
