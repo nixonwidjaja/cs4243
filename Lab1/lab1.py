@@ -125,7 +125,7 @@ def pad_zeros(img, pad_height_bef, pad_height_aft, pad_width_bef, pad_width_aft)
                 for k in range(img.shape[2]):
                     img_pad[i + pad_height_bef, j + pad_width_bef, k] = img[i, j, k]
     """ Your code ends here """
-    return img_pad
+    return img_pad.astype(img.dtype)
 
 
 
@@ -137,6 +137,7 @@ def normalized_cross_correlation(img, template):
     Implement the cross-correlation operation in a naive 4, 5 or 6 nested for-loops. 
     The loops should at least include the height and width of the output and height and width of the template.
     When it is 5 or 6 loops, the channel of the output and template may be included.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray.
     :param template: numpy.ndarray.
     :return response: numpy.ndarray. dtype: float
@@ -147,20 +148,34 @@ def normalized_cross_correlation(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
-    print(img.shape, template.shape)
-    F = np.sqrt(np.sum(template ** 2))
+    img = img.astype('int32')
+    template = template.astype('int32')
     response = np.zeros((Ho, Wo))
-    for i in range(Ho):
-        for j in range(Wo):
-            sum = 0
-            wij = 0
-            for k in range(Hk):
-                for l in range(Wk):
-                    sum += img[i + k, j + l] * template[k, l]
-                    wij += img[i + k, j + l] ** 2
-            print(type(F), type(wij), F, wij)
-            wij = np.sqrt(wij)
-            response[i, j] = sum / (F * wij)
+    F = np.sqrt(np.sum(template ** 2))
+
+    if len(img.shape) == 2:
+        for i in range(Ho):
+            for j in range(Wo):
+                sum = 0
+                wij = 0
+                for k in range(Hk):
+                    for l in range(Wk):
+                        sum += img[i + k, j + l] * template[k, l]
+                        wij += img[i + k, j + l] ** 2
+                wij = np.sqrt(wij)
+                response[i, j] = sum / (F * wij)
+    else:
+        for i in range(Ho):
+            for j in range(Wo):
+                sum = 0
+                wij = 0
+                for k in range(Hk):
+                    for l in range(Wk):
+                        for c in range(img.shape[2]):
+                            sum += img[i + k, j + l, c] * template[k, l, c]
+                            wij += img[i + k, j + l, c] ** 2
+                wij = np.sqrt(wij)
+                response[i, j] = sum / (F * wij)
     """ Your code ends here """
     return response
 
@@ -170,6 +185,7 @@ def normalized_cross_correlation_fast(img, template):
     10 points.
     Implement the cross correlation with 3 nested for-loops. 
     The for-loop over the template is replaced with the element-wise multiplication between the kernel and the image regions.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray
     :param template: numpy.ndarray
     :return response: numpy.ndarray. dtype: float
@@ -180,24 +196,32 @@ def normalized_cross_correlation_fast(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
-    F = math.sqrt(np.sum(template ** 2))
+    img = img.astype('int32')
+    template = template.astype('int32')
     response = np.zeros((Ho, Wo))
+    F = np.sqrt(np.sum(template ** 2))
+
     for i in range(Ho):
         for j in range(Wo):
-            submat = img[i:(i+Hk), j:(j+Wk)]
-            wij = np.sqrt(np.sum(submat ** 2))
-            response[i, j] = np.multiply(submat, template) / (F * wij)
+            if len(img.shape) == 2:
+                sub_img = img[i:(i+Hk), j:(j+Wk)]
+            else:
+                sub_img = img[i:(i+Hk), j:(j+Wk), :]
+            sum = np.sum(np.multiply(sub_img, template))
+            wij = np.sqrt(np.sum(np.multiply(sub_img, sub_img)))
+            response[i, j] = sum / (F * wij)
     """ Your code ends here """
     return response
 
 
 
 
-def normalized_cross_correlation_matrix(img, template):
+def normalized_cross_correlation_matrix(img: np.ndarray, template: np.ndarray):
     """
     10 points.
     Converts cross-correlation into a matrix multiplication operation to leverage optimized matrix operations.
     Please check the detailed instructions in the pdf file.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray
     :param template: numpy.ndarray
     :return response: numpy.ndarray. dtype: float
@@ -208,7 +232,35 @@ def normalized_cross_correlation_matrix(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
+    img = img.astype('int32')
+    template = template.astype('int32')
+    F = np.sqrt(np.sum(template ** 2))
 
+    color = 1 if len(img.shape) == 2 else img.shape[2]
+    template_size = Hk * Wk
+    template_flat = np.zeros((color * template_size, 1))
+    img_size = Ho * Wo
+    img_flat = np.zeros((img_size, color * template_size))
+    idx = 0
+    if len(img.shape) == 2:
+        template_flat[:, 0] = template.flatten()
+        for i in range(Hk):
+            for j in range(Wk):
+                img_flat[:, idx] = img[i:(i+Ho), j:(j+Wo)].flatten()
+                idx += 1
+    else:
+        for c in range(color):
+            template_flat[(c * template_size):((c+1) * template_size), 0] = template[:, :, c].flatten()
+            for i in range(Hk):
+                for j in range(Wk):
+                    img_flat[:, idx] = img[i:(i+Ho), j:(j+Wo), c].flatten()
+                    idx += 1
+
+    res = np.matmul(img_flat, template_flat)
+    ones = np.ones((color * template_size, 1))
+    wij = np.sqrt(np.matmul(img_flat ** 2, ones))
+    response_flat = np.multiply(res, 1 / (F * wij))
+    response = np.reshape(response_flat, (Ho, Wo))
     """ Your code ends here """
     return response
 
@@ -223,7 +275,7 @@ def non_max_suppression(response, suppress_range, threshold=None):
 	1. Set a threshold τ; values in X<τ will not be considered.  Set X<τ to 0.  
     2. While there are non-zero values in X
         a. Find the global maximum in X and record the coordinates as a local maximum.
-        b. Set a small window of size w×w points centered on the found maximum to 0.
+        b. Set a small window of size h×w points centered on the found maximum to 0.
 	3. Return all recorded coordinates as the local maximum.
     :param response: numpy.ndarray, output from the normalized cross correlation
     :param suppress_range: a tuple of two ints (H_range, W_range). 
@@ -271,6 +323,7 @@ def normalized_cross_correlation_ms(img, template):
     10 points
     Please implement mean-subtracted cross correlation which corresponds to OpenCV TM_CCOEFF_NORMED.
     For simplicty, use the "fast" version.
+    Output size: (Ho, Wo)
     :param img: numpy.ndarray
     :param template: numpy.ndarray
     :return response: numpy.ndarray. dtype: float
