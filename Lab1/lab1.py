@@ -168,6 +168,7 @@ def normalized_cross_correlation(img, template):
         for i in range(Ho):
             for j in range(Wo):
                 sum = 0
+
                 wij = 0
                 for k in range(Hk):
                     for l in range(Wk):
@@ -291,7 +292,7 @@ def non_max_suppression(response, suppress_range, threshold=None):
         return out
     
     res = response.copy()
-    
+
     h, w = res.shape[:2]
     all_points_map = {}
     all_points_arr = []
@@ -311,7 +312,8 @@ def non_max_suppression(response, suppress_range, threshold=None):
         if curr_point[1] in all_points_map:
             res[curr_point[1][0], curr_point[1][1]] = curr_point[0]
             for adjacent_point in list_adjacent_tuplets(curr_point[1], suppress_range[0], suppress_range[1]):
-                all_points_arr.pop(adjacent_point)
+                if adjacent_point in all_points_map:
+                    all_points_map.pop(adjacent_point)
         curr += 1
     """ Your code ends here """
     return res
@@ -334,12 +336,26 @@ def normalized_cross_correlation_ms(img, template):
     Wo = Wi - Wk + 1
 
     """ Your code starts here """
+    img = img.astype('int32')
+    template = template.astype('int32')
+    response = np.zeros((Ho, Wo))
+    to_sub = template.sum(axis=(0,1)) / (Hk * Wk)
+    ms_template = template - to_sub
+    F = np.sqrt(np.sum(ms_template ** 2))
 
+    for i in range(Ho):
+        for j in range(Wo):
+            if len(img.shape) == 2:
+                sliced_img = img[i:(i+Hk), j:(j+Wk)]
+            else:
+                sliced_img = img[i:(i+Hk), j:(j+Wk), :]
+            to_sub = sliced_img.sum(axis=(0,1)) / (Hk * Wk)
+            ms_sliced_img = sliced_img - to_sub
+            sum = np.sum(np.multiply(ms_sliced_img, template))
+            wij = np.sqrt(np.sum(np.multiply(ms_sliced_img, ms_sliced_img)))
+            response[i, j] = sum / (F * wij)
     """ Your code ends here """
     return response
-
-
-
 
 """Helper functions: You should not have to touch the following functions.
 """
