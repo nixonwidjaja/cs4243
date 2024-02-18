@@ -102,7 +102,7 @@ def cs4243_blur(img, gaussian_kernel, display=True):
     if display:
 
         fig1, axes_array = plt.subplots(1, 2)
-        fig1.set_size_inches(8, 4)
+        fig1.set_size_inches(20, 10)
         image_plot = axes_array[0].imshow(img, cmap=plt.cm.gray)
         axes_array[0].axis("off")
         axes_array[0].set(title="Original Image")
@@ -179,7 +179,7 @@ def estimate_gradients(original_img, display=True):
     if display:
 
         fig2, axes_array = plt.subplots(1, 4)
-        fig2.set_size_inches(16, 4)
+        fig2.set_size_inches(20, 5)
         image_plot = axes_array[0].imshow(d_mag, cmap="gray")
         axes_array[0].axis("off")
         axes_array[0].set(title="Gradient Magnitude")
@@ -250,7 +250,7 @@ def non_maximum_suppression_interpol(d_mag: np.ndarray, d_angle, display=True):
                 out[x, y] = now
     # END
     if display:
-        _ = plt.figure(figsize=(10, 10))
+        _ = plt.figure(figsize=(15, 15))
         plt.imshow(out, cmap="gray")
         plt.title("Suppressed image (with interpolation)")
 
@@ -315,7 +315,7 @@ def non_maximum_suppression(d_mag: np.ndarray, d_angle, display=True):
                 out[x, y] = now
     # END
     if display:
-        _ = plt.figure(figsize=(10, 10))
+        _ = plt.figure(figsize=(15, 15))
         plt.imshow(out)
         plt.title("Suppressed image (without interpolation)")
 
@@ -323,9 +323,10 @@ def non_maximum_suppression(d_mag: np.ndarray, d_angle, display=True):
 
 
 # 4 IMPLEMENT
-def double_thresholding(inp, perc_weak=0.1, perc_strong=0.3, display=True):
+def double_thresholding(inp: np.ndarray, perc_weak=0.1, perc_strong=0.3, display=True):
     """
-    Perform double thresholding. Use on the output of NMS. The high and low thresholds are computed as follow:
+    Perform double thresholding. Use on the output of NMS.
+    The high and low thresholds are computed as follow:
 
     range = max_val - min_val
     high_threshold = min_val + perc_strong * range
@@ -341,13 +342,24 @@ def double_thresholding(inp, perc_weak=0.1, perc_strong=0.3, display=True):
     weak_edges = strong_edges = None
 
     # YOUR CODE HERE
-
+    min_val, max_val = np.min(inp), np.max(inp)
+    range_val = max_val - min_val
+    high_threshold = min_val + perc_strong * range_val
+    low_threshold = min_val + perc_weak * range_val
+    weak_edges, strong_edges = np.zeros(inp.shape), np.zeros(inp.shape)
+    h, w = inp.shape
+    for x in range(h):
+        for y in range(w):
+            if inp[x, y] > high_threshold:
+                strong_edges[x, y] = 1
+            if low_threshold < inp[x, y] < high_threshold:
+                weak_edges[x, y] = 1
     # END
 
     if display:
 
         fig2, axes_array = plt.subplots(1, 2)
-        fig2.set_size_inches(10, 5)
+        fig2.set_size_inches(20, 10)
         image_plot = axes_array[0].imshow(strong_edges, cmap="gray")
         axes_array[0].axis("off")
         axes_array[0].set(title="Strong ")
@@ -360,15 +372,19 @@ def double_thresholding(inp, perc_weak=0.1, perc_strong=0.3, display=True):
 
 
 # 5 IMPLEMENT
-def edge_linking(weak, strong, n=200, display=True):
+def edge_linking(weak: np.ndarray, strong: np.ndarray, n=200, display=True):
     """
     Perform edge-linking on two binary weak and strong edge images.
     A weak edge pixel is linked if any of its eight surrounding pixels is a strong edge pixel.
-    You may want to avoid using loops directly due to the high computational cost. One possible trick is to generate
-    8 2D arrays from the strong edge image by offseting and sum them together; entries larger than 0 mean that at least one surrounding
+    You may want to avoid using loops directly due to the high computational cost.
+    One possible trick is to generate
+    8 2D arrays from the strong edge image by offseting and sum them together;
+    entries larger than 0 mean that at least one surrounding
     pixel is a strong edge pixel (otherwise the sum would be 0).
 
-    You may also want to limit the number of iterations (test with 10-20 iterations first to check your implementation speed), and use a stopping condition (stop if no more pixel is added to the strong edge image).
+    You may also want to limit the number of iterations
+    (test with 10-20 iterations first to check your implementation speed),
+    and use a stopping condition (stop if no more pixel is added to the strong edge image).
     Also, when a weak edge pixel is added to the strong set, remember to remove it.
 
 
@@ -383,11 +399,34 @@ def edge_linking(weak, strong, n=200, display=True):
     out = None
 
     # YOUR CODE HERE
-
+    # DFS
+    h, w = strong.shape
+    out = np.copy(strong)
+    visited = np.copy(strong)
+    s = []
+    for x in range(h):
+        for y in range(w):
+            if strong[x, y] == 1:
+                s.append((x, y))
+    chx = [0, 0, 1, 1, 1, -1, -1, -1]
+    chy = [1, -1, 0, 1, -1, 0, 1, -1]
+    while len(s) > 0:
+        x, y = s.pop()
+        for i in range(8):
+            new_x, new_y = x + chx[i], y + chy[i]
+            if (
+                0 <= new_x <= h
+                and 0 <= new_y <= w
+                and visited[new_x, new_y] == 0
+                and weak[new_x, new_y] == 1
+            ):
+                visited[new_x, new_y] = 1
+                out[new_x, new_y] = 1
+                s.append((new_x, new_y))
     # END
     if display:
-        _ = plt.figure(figsize=(10, 10))
-        plt.imshow(s)
+        _ = plt.figure(figsize=(15, 15))
+        plt.imshow(out)
         plt.title("Edge image")
     return out
 
