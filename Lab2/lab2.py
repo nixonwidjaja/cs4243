@@ -305,20 +305,14 @@ def non_maximum_suppression(d_mag: np.ndarray, d_angle, display=True):
             angle = (d_angle_180[x, y] + 360) % 180
             if angle < 22.5 or angle >= 180 - 22.5:
                 a, b = get(d_mag, x + 1, y), get(d_mag, x - 1, y)
-                if now > a and now > b:
-                    out[x, y] = now
             elif 22.5 <= angle < 45 + 22.5:
                 a, b = get(d_mag, x + 1, y + 1), get(d_mag, x - 1, y - 1)
-                if now > a and now > b:
-                    out[x, y] = now
             elif 45 + 22.5 <= angle < 90 + 22.5:
                 a, b = get(d_mag, x, y + 1), get(d_mag, x, y - 1)
-                if now > a and now > b:
-                    out[x, y] = now
             else:
                 a, b = get(d_mag, x - 1, y + 1), get(d_mag, x + 1, y - 1)
-                if now > a and now > b:
-                    out[x, y] = now
+            if now > a and now > b:
+                out[x, y] = now
     # END
     if display:
         _ = plt.figure(figsize=(10, 10))
