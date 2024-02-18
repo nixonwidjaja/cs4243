@@ -513,7 +513,7 @@ def find_peak_params(hspace, params_list, window_size=1, threshold=0.5):
 from skimage.draw import circle_perimeter
 
 
-def hough_vote_circles(img, radius=None):
+def hough_vote_circles(img: np.ndarray, radius=None):
     """
     Use the edge image to vote for 3 parameters: circle radius and circle center coordinates.
     We also accept a range of radii to save computation costs. If the radius range is not given, it is default to
@@ -541,9 +541,17 @@ def hough_vote_circles(img, radius=None):
     # 1. Initializing accumulator array A.
     #   A should have three dimensions, in this order: radius, x coordinate, y coordinate
     #   Remember padding
-
+    A = np.zeros((R_max + 1, h + 1, w + 1))
+    R = np.arange(R_max + 1)
+    X = np.arange(h + 1)
+    Y = np.arange(w + 1)
     # 2. Extracting all edge coordinates
-
+    for x in range(h):
+        for y in range(w):
+            if img[x, y] == 1:
+                for r in range(R_min, R_max + 1):
+                    rr, cc = circle_perimeter(x, y, r, shape=(h + 1, w + 1))
+                    A[r, rr, cc] += 1
     # 3. For each radius:
 
     # 3.1 Creating a circular mask
