@@ -415,8 +415,8 @@ def edge_linking(weak: np.ndarray, strong: np.ndarray, n=200, display=True):
         for i in range(8):
             new_x, new_y = x + chx[i], y + chy[i]
             if (
-                0 <= new_x <= h
-                and 0 <= new_y <= w
+                0 <= new_x < h
+                and 0 <= new_y < w
                 and visited[new_x, new_y] == 0
                 and weak[new_x, new_y] == 1
             ):
@@ -570,15 +570,15 @@ def hough_vote_circles(img: np.ndarray, radius=None):
 
 
 # IMPLEMENT
-def hough_vote_circles_grad(img, d_angle, radius=None):
+def hough_vote_circles_grad(img: np.ndarray, d_angle: np.ndarray, radius=None):
     """
     Use the edge image to vote for 3 parameters: circle radius and circle center coordinates.
-    We also accept a range of radii to save computation costs. If the radius range is not given, it is default to
-    [3, diagonal of the circle].
+    We also accept a range of radii to save computation costs. If the radius range is not given,
+    it is default to [3, diagonal of the circle].
     This time, gradient information is used to avoid casting too many unnecessary votes.
 
-    Remember that for a given pixel, you need to cast two votes along the orientation line. One in the positive direction, the other in
-    negative direction.
+    Remember that for a given pixel, you need to cast two votes along the orientation line.
+    One in the positive direction, the other in negative direction.
 
     :param img: edge image
     :param d_angle: corresponding gradient orientation matrix
@@ -597,7 +597,23 @@ def hough_vote_circles_grad(img, d_angle, radius=None):
         [R_min, R_max] = radius
 
     # YOUR CODE HERE
-
+    A = np.zeros((R_max + 1, h + 1, w + 1))
+    R = np.arange(R_max + 1)
+    X = np.arange(h + 1)
+    Y = np.arange(w + 1)
+    for x in range(h):
+        for y in range(w):
+            if img[x, y] == 1:
+                for r in range(R_min, R_max + 1):
+                    angle = d_angle[x, y]
+                    new_x = int(x + r * np.cos(angle))
+                    new_y = int(y + r * np.sin(angle))
+                    if 0 <= new_x < h and 0 <= new_y < w:
+                        A[r, new_x, new_y] += 1
+                    new_x = int(x - r * np.cos(angle))
+                    new_y = int(y - r * np.sin(angle))
+                    if 0 <= new_x < h and 0 <= new_y < w:
+                        A[r, new_x, new_y] += 1
     # END
     return A, R, X, Y
 
