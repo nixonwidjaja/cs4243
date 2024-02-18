@@ -435,7 +435,7 @@ def edge_linking(weak: np.ndarray, strong: np.ndarray, n=200, display=True):
 
 
 # 1/2/3 IMPLEMENT
-def hough_vote_lines(img):
+def hough_vote_lines(img: np.ndarray):
     """
     Use the edge image to vote for 2 parameters: distance and theta
     Beware of our coordinate convention.
@@ -445,7 +445,18 @@ def hough_vote_lines(img):
     :return thetas: theta values array
     """
     # YOUR CODE HERE
-
+    h, w = img.shape
+    diag = math.ceil(math.hypot(h, w))
+    R = 2 * diag + 3
+    A = np.zeros((R, 180))
+    distances = np.arange(-diag - 1, diag + 2)
+    thetas = np.arange(180) * np.pi / 180
+    for x in range(h):
+        for y in range(w):
+            for i, theta in enumerate(thetas):
+                if img[x, y] == 1:
+                    rho = round(x * np.cos(theta) + y * np.sin(theta))
+                    A[rho + diag + 1, i] += 1
     # END
 
     return A, distances, thetas
