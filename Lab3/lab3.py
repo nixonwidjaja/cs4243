@@ -44,9 +44,24 @@ def harris_corners(img, window_size=3, k=0.04):
     response = np.zeros((H, W))
 
     """ Your code starts here """
-    
+
+    dx = filters.sobel_v(img)
+    dy = filters.sobel_v(img)
+
+    dx2 = np.square(dx)
+    dy2 = np.square(dy)
+    dxdy = dx*dy
+
+    a = convolve(dx2, window)
+    b = convolve(dxdy, window)
+    c = convolve(dy2, window)
+
+    response = a*c - np.square(b) - k * np.square(a + c)
+
     """ Your code ends here """ 
     
+    expected = cv2.cornerHarris(img, 3, 3, k)
+
     return response
 
 def naive_descriptor(patch):
@@ -68,6 +83,11 @@ def naive_descriptor(patch):
     
     """ Your code starts here """
     
+    flat = patch.flatten()
+    std = np.std(flat)
+    mean = np.mean(flat)
+    feature = (flat - mean) / (std + 0.0001)
+
     """ Your code ends here """
 
     return feature
@@ -142,7 +162,25 @@ def simple_sift(patch):
     histogram = np.zeros((4,4,8))
     
     """ Your code starts here """
-    
+
+    dx = filters.sobel_v(patch)
+    dy = filters.sobel_v(patch)
+
+    grad_or = np.arctan2(dy, dx)
+    grad_mag = np.sqrt(dx**2 + dy**2)
+
+    bin_num = (grad_or + np.pi) // (np.pi / 2)
+    weighted_grad_mag = grad_mag * weights
+
+    for i in range(4):
+        for j in range(4):
+            for x in range(4*i, 4*(i+1)):
+              for y in range(4*j, 4*(j+1)):
+                histogram[j][i][bin_num[y][x]] = weighted_grad_mag[y][x]
+
+    feature = histogram.flatten()
+    feature = feature / np.sqrt(np.sum(feature**2))
+
     """ Your code ends here """
 
     return feature
