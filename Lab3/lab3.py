@@ -163,19 +163,19 @@ def simple_sift(patch):
     """ Your code starts here """
 
     dx = filters.sobel_v(patch)
-    dy = filters.sobel_v(patch)
+    dy = filters.sobel_h(patch)
 
     grad_or = np.arctan2(dy, dx)
     grad_mag = np.sqrt(dx**2 + dy**2)
 
-    bin_num = (grad_or + np.pi) // (np.pi / 2)
+    bin_num = ((grad_or + 2 * np.pi) // (np.pi / 4)) % 8
     weighted_grad_mag = grad_mag * weights
 
     for i in range(4):
         for j in range(4):
             for x in range(4*i, 4*(i+1)):
               for y in range(4*j, 4*(j+1)):
-                histogram[j][i][bin_num[y][x]] = weighted_grad_mag[y][x]
+                histogram[j][i][int(bin_num[y][x])] += weighted_grad_mag[y][x]
 
     feature = histogram.flatten()
     feature = feature / np.sqrt(np.sum(feature**2))
