@@ -46,7 +46,7 @@ def harris_corners(img, window_size=3, k=0.04):
     """ Your code starts here """
 
     dx = filters.sobel_v(img)
-    dy = filters.sobel_v(img)
+    dy = filters.sobel_h(img)
 
     dx2 = np.square(dx)
     dy2 = np.square(dy)
@@ -59,8 +59,6 @@ def harris_corners(img, window_size=3, k=0.04):
     response = a*c - np.square(b) - k * np.square(a + c)
 
     """ Your code ends here """ 
-    
-    expected = cv2.cornerHarris(img, 3, 3, k)
 
     return response
 
