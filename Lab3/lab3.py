@@ -9,6 +9,7 @@ from scipy.ndimage import gaussian_filter
 from utils import pad, unpad
 import math
 import cv2
+import heapq
 _COLOR_RED = (255, 0, 0)
 _COLOR_GREEN = (0, 255, 0)
 _COLOR_BLUE = (0, 0, 255)
@@ -197,6 +198,16 @@ def top_k_matches(desc1, desc2, k=2):
     match_pairs = []
     
     """ Your code starts here """
+
+    distances = cdist(desc1, desc2)
+
+    for i in range(len(distances)):
+      dist_i = [(distances[i][j], j) for j in range(len(distances[i]))]
+      heapq.heapify(dist_i) # handle duplicates
+      top_k = heapq.nsmallest(k, dist_i)
+
+      match_pairs.append((i, [(dist[1], dist[0]) for dist in top_k]))
+
     
     """ Your code ends here """
 
@@ -227,6 +238,17 @@ def ratio_test_match(desc1, desc2, match_threshold):
     
     """ Your code starts here """
     
+    for i in top_2_matches:
+        desc1_ind = i[0]
+        matches = i[1]
+        lowest_val = matches[0][1]
+        desc2_lowest_ind = matches[0][0]
+        second_lowest_val = matches[1][1]
+
+        ratio = lowest_val / second_lowest_val
+        if ratio < match_threshold:
+          match_pairs.append([desc1_ind, desc2_lowest_ind])
+
     """ Your code ends here """
 
     # Modify this line as you wish
