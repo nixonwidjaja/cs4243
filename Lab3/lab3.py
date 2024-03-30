@@ -196,7 +196,8 @@ def simple_sift(patch):
 def top_k_matches(desc1, desc2, k=2):
     """
     Compute the Euclidean distance between each descriptor in desc1 versus all descriptors in desc2 (Hint: use cdist).
-    For each descriptor Di in desc1, pick out k nearest descriptors from desc2, as well as the distances themselves.
+    For each descriptor Di in desc1, pick out k nearest descriptors from desc2,
+    as well as the distances themselves.
     Example of an output of this function:
 
         [(0, [(18, 0.11414082134194799), (28, 0.139670625444803)]),
@@ -272,7 +273,8 @@ def compute_cv2_descriptor(im, method=cv2.SIFT_create()):
     You can use:
         cv2.SIFT_create()
 
-    Do note that the keypoints coordinate is (col, row)-(x,y) in OpenCV. We have changed it to (row,col)-(y,x) for you. (Consistent with out coordinate choice)
+    Do note that the keypoints coordinate is (col, row)-(x,y) in OpenCV.
+    We have changed it to (row,col)-(y,x) for you. (Consistent with out coordinate choice)
     """
     kpts, descs = method.detectAndCompute(im, None)
 
@@ -423,7 +425,8 @@ def find_peak_params(hspace, params_list, window_size=1, threshold=0.5):
 # GIVEN
 def angle_with_x_axis(pi, pj):
     """
-    Compute the angle that the line connecting two points I and J make with the x-axis (mind our coordinate convention)
+    Compute the angle that the line connecting two points I and J
+    make with the x-axis (mind our coordinate convention)
     Do note that the line direction is from point I to point J.
     """
     # get the difference between point p1 and p2
@@ -455,13 +458,15 @@ def distance(pi, pj):
     return np.sqrt(x**2 + y**2)
 
 
-def shift_sift_descriptor(desc):
+def shift_sift_descriptor(desc: np.ndarray):
     """
       Generate a virtual mirror descriptor for a given descriptor.
-      Note that you have to shift the bins within a mini histogram, and the mini histograms themselves.
+      Note that you have to shift the bins within a mini histogram,
+      and the mini histograms themselves.
       e.g:
       Descriptor for a keypoint
-      (the dimension is (128,), but here we reshape it to (16,8). Each length-8 array is a mini histogram.)
+      (the dimension is (128,), but here we reshape it to (16,8). Each length-8 array is a
+      mini histogram.)
      [[  0.,   0.,   0.,   5.,  41.,   0.,   0.,   0.],
       [ 22.,   2.,   1.,  24., 167.,   0.,   0.,   1.],
       [167.,   3.,   1.,   4.,  29.,   0.,   0.,  12.],
@@ -505,7 +510,14 @@ def shift_sift_descriptor(desc):
     """
 
     """ Your code starts here """
-
+    res = np.copy(desc)
+    for i in range(desc.shape[0]):
+        flipped = res[i, :].reshape((4, 32))[::-1]
+        flipped = flipped.reshape((16, 8))
+        for j in range(16):
+            flipped[j, 1:] = flipped[j, 1:][::-1]
+        flipped = flipped.reshape((128,))
+        res[i, :] = flipped
     """ Your code ends here """
 
     return res
@@ -519,40 +531,55 @@ def create_mirror_descriptors(img):
     """
 
     """ Your code starts here """
-
+    keypoints, descs, angles, sizes = compute_cv2_descriptor(img)
+    mir_descs = shift_sift_descriptor(descs)
     """ Your code ends here """
 
-    return kps, descs, sizes, angles, mir_descs
+    return keypoints, descs, sizes, angles, mir_descs
 
 
 def match_mirror_descriptors(descs, mirror_descs, threshold=0.7):
     """
-    First use `top_k_matches` to find the nearest 3 matches for each keypoint. Then eliminate the mirror descriptor that comes
-    from the same keypoint. Perform ratio test on the two matches left. If no descriptor is eliminated, perform the ratio test
-    on the best 2.
+    First use `top_k_matches` to find the nearest 3 matches for each keypoint.
+    Then eliminate the mirror descriptor that comes from the same keypoint.
+    Perform ratio test on the two matches left.
+    If no descriptor is eliminated, perform the ratio test on the best 2.
     """
     three_matches = top_k_matches(descs, mirror_descs, k=3)
 
     match_result = []
 
     """ Your code starts here """
-
+    for i, matches in three_matches:
+        new_match = []
+        for j, dist in matches:
+            if i != j:
+                new_match.append((j, dist))
+        if new_match[0][1] / new_match[1][1] < threshold:
+            match_result.append((i, new_match[0][0]))
     """ Your code ends here """
 
-    return match_result
+    return np.array(match_result)
 
 
 def find_symmetry_lines(matches, kps):
     """
-    For each pair of matched keypoints, use the keypoint coordinates to compute a candidate symmetry line.
-    Assume the points associated with the original descriptor set to be I's, and the points associated with the mirror descriptor set to be
-    J's.
+    For each pair of matched keypoints, use the keypoint coordinates to compute
+    a candidate symmetry line.
+    Assume the points associated with the original descriptor set to be I's,
+    and the points associated with the mirror descriptor set to be J's.
     """
     rhos = []
     thetas = []
 
     """ Your code starts here """
-
+    for i, j in matches:
+        pi, pj = kps[i], kps[j]
+        y, x = midpoint(pi, pj)
+        theta = angle_with_x_axis(pi, pj)
+        rho = round(x * np.cos(theta) + y * np.sin(theta))
+        rhos.append(rho)
+        thetas.append(round(np.rad2deg((theta) % np.pi)))
     """ Your code ends here """
 
     return rhos, thetas
@@ -568,10 +595,21 @@ def hough_vote_mirror(matches, kps, im_shape, window=1, threshold=0.5, num_lines
     rhos, thetas = find_symmetry_lines(matches, kps)
 
     """ Your code starts here """
-
+    h, w = im_shape
+    diag = math.ceil(math.hypot(h, w))
+    R = 2 * diag + 3
+    A = np.zeros((R, 181))
+    distances = np.arange(-diag - 1, diag + 2)
+    angles = np.arange(181) * np.pi / 180
+    for i in range(len(rhos)):
+        rho, theta = rhos[i], thetas[i]
+        A[rho + diag + 1, theta] += 1
+    _, rho_values, theta_values = find_peak_params(
+        A, [distances, angles], window, threshold
+    )
     """ Your code ends here """
 
-    return rho_values, theta_values
+    return rho_values[:num_lines], theta_values[:num_lines]
 
 
 """Helper functions: You should not have to touch the following functions.
