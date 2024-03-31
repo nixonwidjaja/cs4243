@@ -313,6 +313,16 @@ def transform_homography(src, h_matrix, getNormalized=True):
     return transformed
 
 
+def normalize_matrix(arr):
+    mx, my = np.mean(arr, axis=0)
+    sx, sy = np.std(arr, axis=0) / np.sqrt(2)
+    T = np.array(
+        [[1 / sx, 0, -mx / sx], [0, 1 / sy, -my / sy], [0, 0, 1]], dtype=np.float64
+    )
+    padded_arr = pad(arr)
+    return T, (T @ padded_arr.T).T
+
+
 def compute_homography(src, dst):
     """
     Calculates the perspective transform from at least 4 points of
@@ -331,15 +341,28 @@ def compute_homography(src, dst):
         cv2.findHomography(), cv2.getPerspectiveTransform(),
         np.linalg.solve(), np.linalg.lstsq()
 
-    Hint: use the provided transform_homography() function that applies a given homography to a set of points.
+    Hint: use the provided transform_homography() function that applies a given homography
+    to a set of points.
     """
     h_matrix = np.eye(3, dtype=np.float64)
 
     """ Your code starts here """
-
+    T_src, n_src = normalize_matrix(src)
+    T_dst, n_dst = normalize_matrix(dst)
+    A = np.array([], dtype=np.float64)
+    N = 5
+    A = np.zeros((2 * N, 9))
+    for i in range(N):
+        x, y, _ = n_src[i, :]
+        x_, y_, _ = n_dst[i, :]
+        A[2 * i, :] = np.array([-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_])
+        A[2 * i + 1, :] = np.array([0, 0, 0, -x, -y, -1, x * y_, y * y_, y_])
+    U, sigma, Vt = np.linalg.svd(A)
+    h = Vt[8, :]
+    h_matrix = np.reshape(h, (3, 3))
     """ Your code ends here """
 
-    return h_matrix
+    return np.linalg.inv(T_dst) @ h_matrix @ T_src
 
 
 def ransac_homography(
