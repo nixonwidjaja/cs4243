@@ -350,9 +350,8 @@ def compute_homography(src, dst):
     """ Your code starts here """
     T_src, n_src = normalize_matrix(src)
     T_dst, n_dst = normalize_matrix(dst)
-    A = np.array([], dtype=np.float64)
     N = 5
-    A = np.zeros((2 * N, 9))
+    A = np.zeros((2 * N, 9), dtype=np.float64)
     for i in range(N):
         x, y, _ = n_src[i, :]
         x_, y_, _ = n_dst[i, :]
