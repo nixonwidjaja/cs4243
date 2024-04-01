@@ -349,9 +349,8 @@ def compute_homography(src, dst):
     """ Your code starts here """
     T_src, n_src = normalize_matrix(src)
     T_dst, n_dst = normalize_matrix(dst)
-    A = np.array([], dtype=np.float64)
     N = 5
-    A = np.zeros((2 * N, 9))
+    A = np.zeros((2 * N, 9), dtype=np.float64)
     for i in range(N):
         x, y, _ = n_src[i, :]
         x_, y_, _ = n_dst[i, :]
@@ -396,13 +395,36 @@ def ransac_homography(
     matched1_unpad = keypoints1[matches[:, 0]]
     matched2_unpad = keypoints2[matches[:, 1]]
 
-    max_inliers = np.zeros(N)
+    max_inliers = np.full((N,), False, dtype=bool)
     n_inliers = 0
+    H = np.eye(3, dtype=np.float64)
 
     # RANSAC iteration start
 
     """ Your code starts here """
-
+    for _ in range(n_iters):
+        A = np.zeros((2 * N, 9), dtype=np.float64)
+        indices = np.random.choice(N, n_samples, replace=False)
+        for i, idx in enumerate(indices):
+            x, y = matched1_unpad[idx, :]
+            x_, y_ = matched2_unpad[idx, :]
+            A[2 * i, :] = np.array([-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_])
+            A[2 * i + 1, :] = np.array([0, 0, 0, -x, -y, -1, x * y_, y * y_, y_])
+        U, sigma, Vt = np.linalg.svd(A)
+        h = Vt[8, :]
+        h_matrix = np.reshape(h, (3, 3))
+        projected1 = transform_homography(matched1_unpad, H)
+        projected2 = transform_homography(matched2_unpad, H)
+        count_inliers = 0
+        temp_inliers = np.full((N,), False, dtype=bool)
+        for i in range(N):
+            if np.linalg.norm(projected1[i, :] - projected2[i, :]) < delta:
+                count_inliers += 1
+                temp_inliers[i] = True
+        if count_inliers > n_inliers:
+            max_inliers = temp_inliers
+            n_inliers = count_inliers
+            H = h_matrix
     """ Your code ends here """
 
     return H, matches[max_inliers]
