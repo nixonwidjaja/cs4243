@@ -406,6 +406,7 @@ def ransac_homography(
     matched2_unpad = keypoints2[matches[:, 1]]
 
     max_inliers = 0
+    H = np.eye(3, dtype=np.float64)
 
     # RANSAC iteration start
 
