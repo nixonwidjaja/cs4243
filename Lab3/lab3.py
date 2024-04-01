@@ -3,6 +3,7 @@
 
 import heapq
 import math
+import random
 
 import cv2
 import numpy as np
@@ -364,6 +365,15 @@ def compute_homography(src, dst):
 
     return np.linalg.inv(T_dst) @ h_matrix @ T_src
 
+def get_inliers_index(keypoints1, keypoints2, h_matrix, delta):
+  out = []
+  transformed_keypoints1 = transform_homography(keypoints1, h_matrix)
+  distance = cdist(transformed_keypoints1, keypoints2)
+  for i in range(len(distance)):
+    if distance[i, i] < 20:
+      out.append(i) 
+  return np.array(out)
+
 
 def ransac_homography(
     keypoints1, keypoints2, matches, sampling_ratio=0.5, n_iters=500, delta=20
@@ -396,16 +406,25 @@ def ransac_homography(
     matched1_unpad = keypoints1[matches[:, 0]]
     matched2_unpad = keypoints2[matches[:, 1]]
 
-    max_inliers = np.zeros(N)
-    n_inliers = 0
+    max_inliers = 0
 
     # RANSAC iteration start
 
     """ Your code starts here """
 
+    for i in range(n_iters):
+      curr_sample = matches[np.random.choice(len(matches), size=n_samples, replace=False)]
+      src = keypoints1[curr_sample[:, 0]]
+      dst = keypoints2[curr_sample[:, 1]]
+      h = compute_homography(src, dst)
+      ind = get_inliers_index(matched1_unpad, matched2_unpad, h, delta)
+      if (len(ind) > max_inliers):
+        max_inliers = len(ind)
+        max_inliers_ind = ind
+        H = compute_homography(matched1_unpad[ind], matched2_unpad[ind])
     """ Your code ends here """
 
-    return H, matches[max_inliers]
+    return H, matches[max_inliers_ind]
 
 
 ##### Part 3: Mirror Symmetry Detection #####
