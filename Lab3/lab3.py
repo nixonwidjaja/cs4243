@@ -320,8 +320,7 @@ def normalize_matrix(arr):
     T = np.array(
         [[1 / sx, 0, -mx / sx], [0, 1 / sy, -my / sy], [0, 0, 1]], dtype=np.float64
     )
-    padded_arr = pad(arr)
-    return T, (T @ padded_arr.T).T
+    return T, transform_homography(arr, T)
 
 
 def compute_homography(src, dst):
@@ -350,15 +349,15 @@ def compute_homography(src, dst):
     """ Your code starts here """
     T_src, n_src = normalize_matrix(src)
     T_dst, n_dst = normalize_matrix(dst)
-    N = 5
+    N = len(n_src)
     A = np.zeros((2 * N, 9), dtype=np.float64)
     for i in range(N):
-        x, y, _ = n_src[i, :]
-        x_, y_, _ = n_dst[i, :]
-        A[2 * i, :] = np.array([-x, -y, -1, 0, 0, 0, x * x_, y * x_, x_])
-        A[2 * i + 1, :] = np.array([0, 0, 0, -x, -y, -1, x * y_, y * y_, y_])
+        x_src, y_src = n_src[i, :]
+        x_dst, y_dst = n_dst[i, :]
+        A[2 * i, :] = np.array([-x_src, -y_src, -1, 0, 0, 0, x_src * x_dst, y_src * x_dst, x_dst])
+        A[2 * i + 1, :] = np.array([0, 0, 0, -x_src, -y_src, -1, x_src * y_dst, y_src * y_dst, y_dst])
     U, sigma, Vt = np.linalg.svd(A)
-    h = Vt[8, :]
+    h = Vt[-1]
     h_matrix = np.reshape(h, (3, 3))
     """ Your code ends here """
 
