@@ -366,10 +366,10 @@ def compute_homography(src, dst):
 def get_inliers_index(keypoints1, keypoints2, h_matrix, delta):
   out = []
   transformed_keypoints1 = transform_homography(keypoints1, h_matrix)
-  distance = cdist(transformed_keypoints1, keypoints2)
+  distance = transformed_keypoints1 - keypoints2
   for i in range(len(distance)):
-    if distance[i, i] < 20:
-      out.append(i) 
+    if np.linalg.norm(distance[i]) < delta:
+      out.append(i)
   return np.array(out)
 
 
