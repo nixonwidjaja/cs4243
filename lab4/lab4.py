@@ -6,25 +6,28 @@ Student Number: A0236430N
 
 import cv2
 import numpy as np
+from scipy.ndimage.filters import convolve
+from skimage import filters
 
 # ================ TASK 1.1 ================ #
 
 
 def calcOpticalFlowHS(
-    prevImg: np.array, nextImg: np.array, param_lambda: float, param_delta: float
-) -> np.array:
+    prevImg: np.ndarray, nextImg: np.ndarray, param_lambda: float, param_delta: float
+) -> np.ndarray:
     """Computes a dense optical flow using the Horn–Schunck algorithm.
 
-    The function finds an optical flow for each prevImg pixel using the Horn and Schunck algorithm [Horn81] so that:
+    The function finds an optical flow for each prevImg pixel using the Horn and Schunck
+    algorithm [Horn81] so that:
 
         prevImg(y,x) ~ nextImg(y + flow(y,x,2), x + flow(y,x,1)).
-
 
     Args:
         prevImg (np.array): First 8-bit single-channel input image.
         nextImg (np.array): Second input image of the same size and the same type as prevImg.
-        param_lambda (float): Smoothness weight. The larger it is, the smoother optical flow map you get.
-        param_delta (float): pre-set threshold for determing convergence between iterations.
+        param_lambda (float): Smoothness weight. The larger it is, the smoother optical flow
+            map you get.
+        param_delta (float): pre-set threshold for determining convergence between iterations.
 
     Returns:
         flow (np.array): Computed flow image that has the same size as prevImg and single
@@ -32,7 +35,30 @@ def calcOpticalFlowHS(
 
     """
     # Your code starts here #
-
+    Ix = filters.sobel_v(prevImg)
+    Iy = filters.sobel_h(prevImg)
+    It = nextImg - prevImg
+    h, w = prevImg.shape
+    flow = np.zeros((h, w, 2))
+    loss = 1e9
+    while loss > param_delta:
+        new_flow = np.zeros((h, w, 2))
+        loss = 0
+        for i in range(h):
+            for j in range(w):
+                ukl, vkl = [], []
+                for x, y in [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]:
+                    if 0 <= x < h and 0 <= y < w:
+                        ukl.append(flow[x, y, 0])
+                        vkl.append(flow[x, y, 1])
+                u_kl, v_kl = np.mean(ukl), np.mean(vkl)
+                ix, iy, it = Ix[i, j], Iy[i, j], It[i, j]
+                coef = (ix * u_kl + iy * v_kl + it) / (1 / param_lambda + ix**2 + iy**2)
+                new_flow[i, j, 0] = u_kl - coef * ix
+                new_flow[i, j, 1] = v_kl - coef * iy
+                loss += coef * ix + coef * iy
+        print(loss)
+        flow = new_flow
     # Your code ends here #
 
     return flow
@@ -51,7 +77,8 @@ def combine_and_normalize_features(
         feat2 (np.array): of size (..., N2).
 
     Returns:
-        feats (np.array): combined features of size of size (..., N1+N2), with feat2 weighted by gamma.
+        feats (np.array): combined features of size of size (..., N1+N2), with feat2
+        weighted by gamma.
 
     """
 
@@ -164,7 +191,8 @@ class Textonization:
         pass
 
     def testing(self, img):
-        """Predict the texture label for each pixel of the input testing image. For each pixel in the test image, an ID from a learned texton dictionary can represent it.
+        """Predict the texture label for each pixel of the input testing image.
+        For each pixel in the test image, an ID from a learned texton dictionary can represent it.
 
         Args:
             img (np.array): of size (..., 3).
