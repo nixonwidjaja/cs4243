@@ -185,7 +185,13 @@ class Textonization:
 
         """
         # Your code starts here #
-
+        feats = []
+        for img in training_imgs:
+            features = features_from_filter_bank(img, self.kernels)
+            h, w = img.shape[:2]
+            feats.extend(features.reshape(h * w, 17))
+        kmeans = MiniBatchKMeans(n_clusters=self.n_clusters, random_state=42).fit(feats)
+        self.centers = kmeans.cluster_centers_
         # Your code ends here #
 
         pass
@@ -202,7 +208,15 @@ class Textonization:
 
         """
         # Your code starts here #
-
+        feats = features_from_filter_bank(img, self.kernels)
+        h, w = img.shape[:2]
+        textons = np.zeros((h, w))
+        tree = KDTree(self.centers)
+        for i in range(h):
+            for j in range(w):
+                _, ind = tree.query([feats[i, j]])
+                textons[i, j] = ind
+        textons = textons.reshape((h, w, 1))
         # Your code ends here #
 
         return textons
@@ -247,7 +261,7 @@ def features_from_filter_bank(image, kernels):
     return feats
 
 
-def histogram_per_pixel(textons, window_size):
+def histogram_per_pixel(img, window_size):
     """Compute texton histogram by computing the distribution of texton indices within the window.
 
     Args:
