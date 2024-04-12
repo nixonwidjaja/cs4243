@@ -190,7 +190,7 @@ class Textonization:
             features = features_from_filter_bank(img, self.kernels)
             h, w = img.shape[:2]
             feats.extend(features.reshape(h * w, 17))
-        kmeans = MiniBatchKMeans(n_clusters=self.n_clusters, random_state=42).fit(feats)
+        kmeans = MiniBatchKMeans(n_clusters=self.n_clusters).fit(feats)
         self.centers = kmeans.cluster_centers_
         # Your code ends here #
 
