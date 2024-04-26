@@ -35,30 +35,33 @@ def calcOpticalFlowHS(
 
     """
     # Your code starts here #
-    Ix = filters.sobel_v(prevImg)
-    Iy = filters.sobel_h(prevImg)
-    It = nextImg - prevImg
-    h, w = prevImg.shape
-    flow = np.zeros((h, w, 2))
-    loss = 1e9
-    while loss > param_delta:
-        new_flow = np.zeros((h, w, 2))
-        loss = 0
-        for i in range(h):
-            for j in range(w):
-                ukl, vkl = [], []
-                for x, y in [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]:
-                    if 0 <= x < h and 0 <= y < w:
-                        ukl.append(flow[x, y, 0])
-                        vkl.append(flow[x, y, 1])
-                u_kl, v_kl = np.mean(ukl), np.mean(vkl)
-                ix, iy, it = Ix[i, j], Iy[i, j], It[i, j]
-                coef = (ix * u_kl + iy * v_kl + it) / (1 / param_lambda + ix**2 + iy**2)
-                new_flow[i, j, 0] = u_kl - coef * ix
-                new_flow[i, j, 1] = v_kl - coef * iy
-                loss += coef * ix + coef * iy
-        print(loss)
-        flow = new_flow
+    i0 = filters.gaussian(prevImg, sigma=1)
+    i1 = filters.gaussian(nextImg, sigma=1)
+    # i0 = prevImg
+    # i1 = nextImg
+    Ix = (filters.scharr_v(i0) + filters.scharr_v(i1)) * 0.5
+    Iy = (filters.scharr_h(i0) + filters.scharr_h(i1)) * 0.5
+    It = i1 - i0
+    h, w = i0.shape
+    u0 = np.zeros((h, w))
+    v0 = np.zeros((h, w))
+    u = u0
+    v = v0
+    delta = 1e9
+    while delta > param_delta:
+      avg_u = get_flow_average(u)
+      avg_v = get_flow_average(v)
+      coef = (Ix * avg_u + Iy * avg_v + It) / (param_lambda + Ix ** 2 + Iy ** 2)
+      prev_u = u
+      prev_v = v
+      u = avg_u - coef * Ix
+      v = avg_v - coef * Iy
+      delta = min(np.max(np.abs(u - prev_u)), np.max(np.abs(v - prev_v)))
+      print(delta)
+
+    flow = np.concatenate((u.reshape((h, w, 1)), v.reshape((h, w, 1))), axis=2)
+    print(flow)
+    
     # Your code ends here #
 
     return flow
@@ -66,6 +69,12 @@ def calcOpticalFlowHS(
 
 ### Task 1 Auxiliary function
 
+def get_flow_average(flow: np.array) -> np.array:
+    avg_kernel = np.array([[1/12, 1/6, 1/12],
+                            [1/6, 0, 1/6],
+                            [1/12, 1/6, 1/12]])
+    
+    return convolve(flow, avg_kernel)
 
 def combine_and_normalize_features(
     feat1: np.array, feat2: np.array, gamma: float
